@@ -18,9 +18,9 @@ INCLUDES = -I $(SRC_PATH)
 # General linker settings
 LINK_FLAGS = -flto -O3
 # Additional release-specific linker settings
-RLINK_FLAGS = 
+RLINK_FLAGS =
 # Additional debug-specific linker settings
-DLINK_FLAGS = 
+DLINK_FLAGS =
 # Destination directory, like a jail or mounted system
 DESTDIR = /
 # Install path (bin/ is appended automatically)
@@ -31,7 +31,7 @@ INSTALL_PREFIX = usr/local
 
 # Shell used in this makefile
 # bash is used for 'echo -en'
-SHELL = /bin/bash
+SHELL = /usr/bin/env bash
 # Clear built-in rules
 .SUFFIXES:
 # Programs for installation
@@ -43,7 +43,7 @@ INSTALL_DATA = $(INSTALL) -m 644
 export V := false
 export CMD_PREFIX := @
 ifeq ($(V),true)
-	CMD_PREFIX := 
+	CMD_PREFIX :=
 endif
 
 # Combine compiler and linker flags
@@ -82,7 +82,7 @@ START_TIME = date '+%s' > $(TIME_FILE)
 END_TIME = read st < $(TIME_FILE) ; \
 	$(RM) $(TIME_FILE) ; \
 	st=$$((`date '+%s'` - $$st - 86400)) ; \
-	echo `date -u -d @$$st '+%H:%M:%S'` 
+	echo `date -u -d @$$st '+%H:%M:%S'`
 
 # Version macros
 # Comment/remove this section to remove versioning
