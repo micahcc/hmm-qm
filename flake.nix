@@ -6,8 +6,14 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
       in
@@ -21,10 +27,13 @@
 
             nativeBuildInputs = with pkgs; [
               gnumake
+              pkg-config
             ];
 
             buildInputs = with pkgs; [
               glm
+              gdal
+              zlib.dev
             ];
 
             makeFlags = [ "C=${pkgs.stdenv.cc}/bin/c++" ];
@@ -61,8 +70,15 @@
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             glm
+            gdal
+            zlib.dev
             gnumake
             gcc
+          ];
+
+          nativeBuildInputs = with pkgs; [
+            gnumake
+            pkg-config
           ];
 
           shellHook = ''

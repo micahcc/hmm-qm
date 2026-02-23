@@ -6,6 +6,12 @@
 
 #include "blur.h"
 
+#include <gdal_priv.h>
+#include <cpl_conv.h>
+#include <algorithm>
+#include <cstring>
+#include <iostream>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -16,20 +22,73 @@ Heightmap::Heightmap(const std::string &path) :
     m_Width(0),
     m_Height(0)
 {
-    int w, h, c;
-    uint16_t *data = stbi_load_16(path.c_str(), &w, &h, &c, 1);
-    if (!data) {
-        return;
+    // Check if file is a TIFF/TIF file to use GDAL
+    const size_t len = path.length();
+    bool isTiff = false;
+    if (len > 4) {
+        std::string ext = path.substr(len - 4);
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+        isTiff = (ext == ".tif");
     }
-    m_Width = w;
-    m_Height = h;
-    const int n = w * h;
-    const float m = 1.f / 65535.f;
-    m_Data.resize(n);
-    for (int i = 0; i < n; i++) {
-        m_Data[i] = data[i] * m;
+    if (len > 5 && !isTiff) {
+        std::string ext = path.substr(len - 5);
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+        isTiff = (ext == ".tiff");
     }
-    free(data);
+
+    if (isTiff) {
+        // Use GDAL for TIFF files - preserve actual elevation values
+        GDALAllRegister();
+        GDALDataset *dataset = (GDALDataset *) GDALOpen(path.c_str(), GA_ReadOnly);
+        if (dataset == nullptr) {
+            std::cerr << "Failed to open TIFF file: " << path << std::endl;
+            return;
+        }
+
+        GDALRasterBand *band = dataset->GetRasterBand(1);
+        if (band == nullptr) {
+            std::cerr << "Failed to get raster band from TIFF file" << std::endl;
+            GDALClose(dataset);
+            return;
+        }
+
+        m_Width = band->GetXSize();
+        m_Height = band->GetYSize();
+        const int n = m_Width * m_Height;
+        m_Data.resize(n);
+
+        // Read data as float32 to preserve actual elevation values
+        CPLErr err = band->RasterIO(GF_Read, 0, 0, m_Width, m_Height,
+                                    m_Data.data(), m_Width, m_Height,
+                                    GDT_Float32, 0, 0);
+        if (err != CE_None) {
+            std::cerr << "Failed to read raster data from TIFF file" << std::endl;
+            GDALClose(dataset);
+            m_Width = 0;
+            m_Height = 0;
+            m_Data.clear();
+            return;
+        }
+
+        GDALClose(dataset);
+    } else {
+        // Use stb_image for other formats (PNG, JPG, etc.)
+        // These are normalized to [0, 1] range
+        int w, h, c;
+        uint16_t *data = stbi_load_16(path.c_str(), &w, &h, &c, 1);
+        if (!data) {
+            return;
+        }
+        m_Width = w;
+        m_Height = h;
+        const int n = w * h;
+        const float m = 1.f / 65535.f;
+        m_Data.resize(n);
+        for (int i = 0; i < n; i++) {
+            m_Data[i] = data[i] * m;
+        }
+        free(data);
+    }
 }
 
 Heightmap::Heightmap(

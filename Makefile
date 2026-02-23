@@ -1,6 +1,7 @@
 #### PROJECT SETTINGS ####
-# The name of the executable to be created
+# The names of the executables to be created
 BIN_NAME := hmm
+BIN_NAME2 := hmm-terrain
 # Compiler used
 C ?= g++
 # Extension of source files used in the project
@@ -14,9 +15,9 @@ RCOMPILE_FLAGS = -D NDEBUG
 # Additional debug-specific flags
 DCOMPILE_FLAGS = -D DEBUG
 # Add additional include paths
-INCLUDES = -I $(SRC_PATH)
+INCLUDES = -I $(SRC_PATH) $(shell gdal-config --cflags)
 # General linker settings
-LINK_FLAGS = -flto -O3
+LINK_FLAGS = -flto -O3 $(shell gdal-config --libs) -lz
 # Additional release-specific linker settings
 RLINK_FLAGS =
 # Additional debug-specific linker settings
@@ -70,9 +71,17 @@ ifeq ($(SOURCES),)
 	SOURCES := $(call rwildcard, $(SRC_PATH)/, *.$(SRC_EXT))
 endif
 
+# Separate sources for each executable
+COMMON_SOURCES = $(filter-out $(SRC_PATH)/main.cpp $(SRC_PATH)/terrain_builder.cpp, $(SOURCES))
+MAIN_SOURCES = $(COMMON_SOURCES) $(SRC_PATH)/main.cpp
+TERRAIN_SOURCES = $(COMMON_SOURCES) $(SRC_PATH)/terrain_builder.cpp
+
 # Set the object file names, with the source directory stripped
 # from the path, and the build path prepended in its place
 OBJECTS = $(SOURCES:$(SRC_PATH)/%.$(SRC_EXT)=$(BUILD_PATH)/%.o)
+MAIN_OBJECTS = $(MAIN_SOURCES:$(SRC_PATH)/%.$(SRC_EXT)=$(BUILD_PATH)/%.o)
+TERRAIN_OBJECTS = $(TERRAIN_SOURCES:$(SRC_PATH)/%.$(SRC_EXT)=$(BUILD_PATH)/%.o)
+
 # Set the dependency files that will be used to add header dependencies
 DEPS = $(OBJECTS:.o=.d)
 
@@ -149,22 +158,30 @@ uninstall:
 # Removes all build files
 .PHONY: clean
 clean:
-	@echo "Deleting $(BIN_NAME) symlink"
-	@$(RM) $(BIN_NAME)
+	@echo "Deleting $(BIN_NAME) and $(BIN_NAME2) symlinks"
+	@$(RM) $(BIN_NAME) $(BIN_NAME2)
 	@echo "Deleting directories"
 	@$(RM) -r build
 	@$(RM) -r bin
 
-# Main rule, checks the executable and symlinks to the output
-all: $(BIN_PATH)/$(BIN_NAME)
-	@echo "Making symlink: $(BIN_NAME) -> $<"
+# Main rule, checks the executables and symlinks to the output
+all: $(BIN_PATH)/$(BIN_NAME) $(BIN_PATH)/$(BIN_NAME2)
+	@echo "Making symlink: $(BIN_NAME) -> $(BIN_PATH)/$(BIN_NAME)"
 	@$(RM) $(BIN_NAME)
 	@ln -s $(BIN_PATH)/$(BIN_NAME) $(BIN_NAME)
+	@echo "Making symlink: $(BIN_NAME2) -> $(BIN_PATH)/$(BIN_NAME2)"
+	@$(RM) $(BIN_NAME2)
+	@ln -s $(BIN_PATH)/$(BIN_NAME2) $(BIN_NAME2)
 
-# Link the executable
-$(BIN_PATH)/$(BIN_NAME): $(OBJECTS)
+# Link the first executable
+$(BIN_PATH)/$(BIN_NAME): $(MAIN_OBJECTS)
 	@echo "Linking: $@"
-	$(CMD_PREFIX)$(C) $(OBJECTS) $(LDFLAGS) -o $@
+	$(CMD_PREFIX)$(C) $(MAIN_OBJECTS) $(LDFLAGS) -o $@
+
+# Link the second executable
+$(BIN_PATH)/$(BIN_NAME2): $(TERRAIN_OBJECTS)
+	@echo "Linking: $@"
+	$(CMD_PREFIX)$(C) $(TERRAIN_OBJECTS) $(LDFLAGS) -o $@
 
 # Add dependency files, if they exist
 -include $(DEPS)

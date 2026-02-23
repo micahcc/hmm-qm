@@ -27,7 +27,11 @@ public:
 
     std::vector<glm::vec3> Points(const float zScale) const;
 
+    std::vector<glm::ivec2> Points2D() const;
+
     std::vector<glm::ivec3> Triangles() const;
+
+    std::vector<int> TriangleIndices() const;
 
 private:
     void Flush();

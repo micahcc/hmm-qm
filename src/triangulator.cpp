@@ -59,6 +59,10 @@ std::vector<glm::vec3> Triangulator::Points(const float zScale) const {
     return points;
 }
 
+std::vector<glm::ivec2> Triangulator::Points2D() const {
+    return m_Points;
+}
+
 std::vector<glm::ivec3> Triangulator::Triangles() const {
     std::vector<glm::ivec3> triangles;
     triangles.reserve(m_Queue.size());
@@ -69,6 +73,17 @@ std::vector<glm::ivec3> Triangulator::Triangles() const {
             m_Triangles[i * 3 + 2]);
     }
     return triangles;
+}
+
+std::vector<int> Triangulator::TriangleIndices() const {
+    std::vector<int> indices;
+    indices.reserve(m_Queue.size() * 3);
+    for (const int i : m_Queue) {
+        indices.push_back(m_Triangles[i * 3 + 0]);
+        indices.push_back(m_Triangles[i * 3 + 1]);
+        indices.push_back(m_Triangles[i * 3 + 2]);
+    }
+    return indices;
 }
 
 void Triangulator::Flush() {
