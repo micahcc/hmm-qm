@@ -40,12 +40,15 @@ glm::dvec3 GeodeticToECEF(double lon, double lat, double height) {
 
 TileBounds GetTileBounds(int zoom, int x, int y) {
     // EPSG:4326 (lat/lon) with TMS tiling scheme
-    // At zoom level 0, there are 2 tiles covering the world
+    // At zoom level 0, there are 2 tiles covering the world horizontally
     // Each tile is 180 degrees wide and 180 degrees tall
 
-    const int tilesPerSide = 1 << zoom;  // 2^zoom
-    const double tileWidth = 360.0 / tilesPerSide;
-    const double tileHeight = 180.0 / tilesPerSide;
+    // For zoom level 0, we have 2 tiles horizontally (not 1)
+    const int tilesX = 2 << zoom;  // 2 * 2^zoom for horizontal tiles
+    const int tilesY = 1 << zoom;  // 2^zoom for vertical tiles
+
+    const double tileWidth = 360.0 / tilesX;   // 180 degrees at zoom 0
+    const double tileHeight = 180.0 / tilesY;  // 180 degrees at zoom 0
 
     TileBounds bounds;
     bounds.west = -180.0 + x * tileWidth;
